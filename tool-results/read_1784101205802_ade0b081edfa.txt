@@ -1,0 +1,717 @@
+     1→import { motion, useMotionValue, useTransform, animate } from "motion/react";
+     2→import { SignInButton } from "@/components/ui/signin.tsx";
+     3→import { Unauthenticated, Authenticated } from "convex/react";
+     4→import { useQuery, useMutation } from "convex/react";
+     5→import { api } from "@/convex/_generated/api.js";
+     6→import React, { useEffect, useRef, useState } from "react";
+     7→import {
+     8→  Flame,
+     9→  Zap,
+    10→  MessageCircle,
+    11→  Video,
+    12→  Shield,
+    13→  Star,
+    14→  Heart,
+    15→  ChevronRight,
+    16→  Check,
+    17→  Users,
+    18→  Sparkles,
+    19→  MapPin,
+    20→  Clock,
+    21→  Trophy,
+    22→  AlertTriangle,
+    23→  Crown,
+    24→  Lock,
+    25→  Unlock,
+    26→  ArrowRight,
+    27→  Mail,
+    28→} from "lucide-react";
+    29→import { toast } from "sonner";
+    30→import { ConvexError } from "convex/values";
+    31→
+    32→// ─── Data ────────────────────────────────────────────────────────────────────
+    33→
+    34→const HERO_PROFILES = [
+    35→  {
+    36→    name: "Sofia, 26",
+    37→    city: "New York",
+    38→    img: "https://images.unsplash.com/photo-1562337404-3044c84ac061?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400&q=80",
+    39→  },
+    40→  {
+    41→    name: "Marcus, 29",
+    42→    city: "London",
+    43→    img: "https://images.unsplash.com/photo-1561688961-7588856fe6ee?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400&q=80",
+    44→  },
+    45→  {
+    46→    name: "Aria, 24",
+    47→    city: "Tokyo",
+    48→    img: "https://images.unsplash.com/photo-1578933301026-3e5e901126dc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400&q=80",
+    49→  },
+    50→];
+    51→
+    52→type FeatureItem = { Icon: React.ElementType; title: string; desc: string; gradient: string };
+    53→const FEATURES: FeatureItem[] = [
+    54→  { Icon: Zap, title: "Vibe Matching", desc: "12 quirky questions power our algorithm. Match with people who genuinely get you — not just look like you.", gradient: "from-purple-500 to-pink-500" },
+    55→  { Icon: MessageCircle, title: "Real-time Chat", desc: "Instant messages with typing indicators, read receipts, and built-in icebreakers to kill awkward silences.", gradient: "from-cyan-500 to-blue-500" },
+    56→  { Icon: Video, title: "Spark Sessions", desc: "Live 3-minute video Vibe Checks every Thursday night. Real chemistry before you give out your number.", gradient: "from-pink-500 to-orange-500" },
+    57→  { Icon: Shield, title: "Zero Catfishes", desc: "Manual review + selfie verification. Real people only. Your safety is non-negotiable.", gradient: "from-green-500 to-cyan-500" },
+    58→  { Icon: Star, title: "Spotlight Swipes", desc: "Signal you're really into someone. Stand out from the crowd with one daily Spotlight.", gradient: "from-yellow-500 to-orange-500" },
+    59→  { Icon: Heart, title: "Icebreakers", desc: '"Two Truths, One Lie" built right in. Break the ice the moment you match.', gradient: "from-red-500 to-pink-500" },
+    60→];
+    61→
+    62→const STATS = [
+    63→  { value: "2.4M+", label: "Active members" },
+    64→  { value: "847K", label: "Matches made" },
+    65→  { value: "94%", label: "Match accuracy" },
+    66→  { value: "4.9★", label: "App store rating" },
+    67→];
+    68→
+    69→const TOTAL_SPOTS = 1000;
+    70→
+    71→// ─── Animated counter ────────────────────────────────────────────────────────
+    72→
+    73→function AnimatedNumber({ value }: { value: number }) {
+    74→  const ref = useRef<HTMLSpanElement>(null);
+    75→  const motionVal = useMotionValue(value - 20 < 0 ? 0 : value - 20);
+    76→
+    77→  useEffect(() => {
+    78→    const controls = animate(motionVal, value, { duration: 1.5, ease: "easeOut" as const });
+    79→    const unsubscribe = motionVal.on("change", (v) => {
+    80→      if (ref.current) ref.current.textContent = Math.round(v).toString();
+    81→    });
+    82→    return () => { controls.stop(); unsubscribe(); };
+    83→  }, [value, motionVal]);
+    84→
+    85→  return <span ref={ref}>{value}</span>;
+    86→}
+    87→
+    88→// ─── Waitlist form ────────────────────────────────────────────────────────────
+    89→
+    90→function WaitlistForm({ onSuccess }: { onSuccess: () => void }) {
+    91→  const [email, setEmail] = useState("");
+    92→  const [city, setCity] = useState("");
+    93→  const [zip, setZip] = useState("");
+    94→  const [loading, setLoading] = useState(false);
+    95→  const join = useMutation(api.waitlist.joinWaitlist);
+    96→
+    97→  async function handleSubmit(e: React.FormEvent) {
+    98→    e.preventDefault();
+    99→    if (!email || !city) return;
+   100→    setLoading(true);
+   101→    try {
+   102→      await join({ email, city, zip: zip || undefined });
+   103→      onSuccess();
+   104→    } catch (err) {
+   105→      if (err instanceof ConvexError) {
+   106→        const data = err.data as { message: string };
+   107→        if (data.message === "already_on_waitlist") {
+   108→          toast.info("You're already on the waitlist!", { description: "We'll notify you when your city unlocks." });
+   109→        } else {
+   110→          toast.error("Something went wrong. Try again.");
+   111→        }
+   112→      } else {
+   113→        toast.error("Something went wrong. Try again.");
+   114→      }
+   115→    } finally {
+   116→      setLoading(false);
+   117→    }
+   118→  }
+   119→
+   120→  return (
+   121→    <form onSubmit={handleSubmit} className="space-y-3 w-full max-w-sm">
+   122→      <input
+   123→        type="email"
+   124→        required
+   125→        value={email}
+   126→        onChange={(e) => setEmail(e.target.value)}
+   127→        placeholder="your@email.com"
+   128→        className="w-full bg-white/8 border border-white/15 rounded-xl px-4 py-3 text-white placeholder:text-white/30 text-sm outline-none focus:border-purple-500/60 transition-colors"
+   129→      />
+   130→      <div className="flex gap-2">
+   131→        <input
+   132→          type="text"
+   133→          required
+   134→          value={city}
+   135→          onChange={(e) => setCity(e.target.value)}
+   136→          placeholder="Your city (e.g. Austin)"
+   137→          className="flex-1 bg-white/8 border border-white/15 rounded-xl px-4 py-3 text-white placeholder:text-white/30 text-sm outline-none focus:border-purple-500/60 transition-colors"
+   138→        />
+   139→        <input
+   140→          type="text"
+   141→          value={zip}
+   142→          onChange={(e) => setZip(e.target.value)}
+   143→          placeholder="ZIP"
+   144→          className="w-24 bg-white/8 border border-white/15 rounded-xl px-4 py-3 text-white placeholder:text-white/30 text-sm outline-none focus:border-purple-500/60 transition-colors"
+   145→        />
+   146→      </div>
+   147→      <button
+   148→        type="submit"
+   149→        disabled={loading || !email || !city}
+   150→        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 text-white font-black text-sm hover:opacity-90 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-default disabled:hover:scale-100 cursor-pointer shadow-lg shadow-purple-500/30 flex items-center justify-center gap-2"
+   151→      >
+   152→        {loading ? (
+   153→          <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+   154→        ) : (
+   155→          <>
+   156→            <Crown className="w-4 h-4" />
+   157→            Claim My Lifetime Founder Spot
+   158→          </>
+   159→        )}
+   160→      </button>
+   161→    </form>
+   162→  );
+   163→}
+   164→
+   165→// ─── Main component ───────────────────────────────────────────────────────────
+   166→
+   167→export default function Index() {
+   168→  const [waitlistDone, setWaitlistDone] = useState(false);
+   169→  const waitlistCount = useQuery(api.waitlist.getWaitlistCount);
+   170→  const cityLeaderboard = useQuery(api.waitlist.getCityLeaderboard);
+   171→  const count = waitlistCount ?? 842;
+   172→  const remaining = Math.max(0, TOTAL_SPOTS - count);
+   173→  const pct = Math.min(100, (count / TOTAL_SPOTS) * 100);
+   174→
+   175→  return (
+   176→    <div className="min-h-screen bg-[#080810] text-white overflow-x-hidden">
+   177→      {/* Nav */}
+   178→      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-[#080810]/80 backdrop-blur-xl border-b border-white/5">
+   179→        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2">
+   180→          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
+   181→            <Flame className="w-4 h-4 text-white" />
+   182→          </div>
+   183→          <span className="text-xl font-black tracking-tight bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">HYDRASPARK</span>
+   184→        </motion.div>
+   185→        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-4">
+   186→          <a href="#manifesto" className="hidden md:block text-sm text-white/60 hover:text-white transition-colors">Our Mission</a>
+   187→          <a href="#features" className="hidden md:block text-sm text-white/60 hover:text-white transition-colors">Features</a>
+   188→          <a href="#founder" className="hidden md:block text-sm text-white/60 hover:text-white transition-colors">Founder Drop</a>
+   189→          <Unauthenticated>
+   190→            <a href="#founder" className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white text-sm font-bold px-5 py-2 rounded-full hover:opacity-90 transition-all cursor-pointer">
+   191→              Claim Spot
+   192→            </a>
+   193→          </Unauthenticated>
+   194→          <Authenticated>
+   195→            <a href="/app" className="text-sm font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent hover:opacity-80 transition-all cursor-pointer">
+   196→              Enter App →
+   197→            </a>
+   198→          </Authenticated>
+   199→        </motion.div>
+   200→      </nav>
+   201→
+   202→      {/* ── HERO ── */}
+   203→      <section className="relative min-h-screen flex items-center pt-20">
+   204→        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+   205→          <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-purple-600/20 blur-[120px]" />
+   206→          <div className="absolute top-1/3 right-1/4 w-80 h-80 rounded-full bg-cyan-600/20 blur-[120px]" />
+   207→          <div className="absolute bottom-1/4 left-1/2 w-64 h-64 rounded-full bg-pink-600/15 blur-[100px]" />
+   208→        </div>
+   209→
+   210→        <div className="relative max-w-7xl mx-auto px-6 py-20 grid lg:grid-cols-2 gap-16 items-center">
+   211→          <div className="space-y-8">
+   212→            {/* Urgency pill */}
+   213→            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+   214→              <div className="inline-flex items-center gap-2 bg-red-500/15 border border-red-500/30 rounded-full px-4 py-2 text-sm text-red-300 mb-3">
+   215→                <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+   216→                <span><AnimatedNumber value={count} /> / {TOTAL_SPOTS} Lifetime Spots Claimed</span>
+   217→              </div>
+   218→              <h1 className="text-5xl lg:text-7xl font-black leading-[1.05] tracking-tight text-balance">
+   219→                The dating app that's{" "}
+   220→                <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
+   221→                  actually free.
+   222→                </span>
+   223→              </h1>
+   224→            </motion.div>
+   225→
+   226→            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="text-lg text-white/60 max-w-lg leading-relaxed">
+   227→              No paywalls to see who likes you. No hidden algorithm suppressing your profile. Independent. Honest. Built to actually help you connect.
+   228→            </motion.p>
+   229→
+   230→            {/* Progress bar */}
+   231→            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="space-y-2">
+   232→              <div className="flex justify-between text-xs text-white/50">
+   233→                <span className="flex items-center gap-1"><Users className="w-3 h-3" /> Lifetime founder spots</span>
+   234→                <span className="text-yellow-400 font-bold">{remaining} remaining</span>
+   235→              </div>
+   236→              <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/10">
+   237→                <motion.div
+   238→                  initial={{ width: 0 }}
+   239→                  animate={{ width: `${pct}%` }}
+   240→                  transition={{ duration: 1.5, ease: "easeOut" as const, delay: 0.4 }}
+   241→                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-cyan-400"
+   242→                />
+   243→              </div>
+   244→            </motion.div>
+   245→
+   246→            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+   247→              <a
+   248→                href="#founder"
+   249→                className="group flex items-center gap-2 bg-gradient-to-r from-purple-500 to-cyan-500 text-white font-black px-8 py-4 rounded-2xl text-base hover:opacity-90 transition-all hover:scale-105 cursor-pointer shadow-lg shadow-purple-500/25"
+   250→              >
+   251→                <Crown className="w-5 h-5" />
+   252→                Claim Free Lifetime Access
+   253→                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+   254→              </a>
+   255→              <a href="#manifesto" className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm font-medium cursor-pointer">
+   256→                Why free? <ChevronRight className="w-4 h-4" />
+   257→              </a>
+   258→            </motion.div>
+   259→
+   260→            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex gap-8 pt-2">
+   261→              {STATS.slice(0, 3).map((s) => (
+   262→                <div key={s.label}>
+   263→                  <div className="text-2xl font-black bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">{s.value}</div>
+   264→                  <div className="text-xs text-white/40 mt-0.5">{s.label}</div>
+   265→                </div>
+   266→              ))}
+   267→            </motion.div>
+   268→          </div>
+   269→
+   270→          {/* Profile cards */}
+   271→          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, delay: 0.2 }} className="relative h-[500px] hidden lg:block">
+   272→            {HERO_PROFILES.map((p, i) => (
+   273→              <motion.div
+   274→                key={p.name}
+   275→                className="absolute rounded-3xl overflow-hidden shadow-2xl"
+   276→                style={{ width: 260, height: 360, top: i * 24, left: i * 30, zIndex: HERO_PROFILES.length - i }}
+   277→                initial={{ rotate: (i - 1) * 6 }}
+   278→                animate={{ rotate: (i - 1) * 6 }}
+   279→                whileHover={{ y: -8, transition: { duration: 0.2 } }}
+   280→              >
+   281→                <img src={p.img} alt={p.name} className="w-full h-full object-cover" />
+   282→                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+   283→                <div className="absolute bottom-4 left-4 right-4">
+   284→                  <div className="text-white font-bold text-lg">{p.name}</div>
+   285→                  <div className="text-white/60 text-sm">{p.city}</div>
+   286→                </div>
+   287→                {i === 0 && (
+   288→                  <div className="absolute top-4 right-4 bg-gradient-to-r from-purple-500 to-cyan-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+   289→                    97% Vibe
+   290→                  </div>
+   291→                )}
+   292→              </motion.div>
+   293→            ))}
+   294→            <motion.div
+   295→              className="absolute bottom-8 right-8 w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-xl shadow-purple-500/30 cursor-pointer z-20"
+   296→              animate={{ scale: [1, 1.05, 1] }}
+   297→              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" as const }}
+   298→            >
+   299→              <Heart className="w-7 h-7 text-white fill-white" />
+   300→            </motion.div>
+   301→          </motion.div>
+   302→        </div>
+   303→      </section>
+   304→
+   305→      {/* ── MANIFESTO ── */}
+   306→      <section id="manifesto" className="py-28 relative">
+   307→        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+   308→          <div className="absolute top-1/2 left-0 w-96 h-96 rounded-full bg-red-600/8 blur-[140px]" />
+   309→        </div>
+   310→        <div className="max-w-4xl mx-auto px-6">
+   311→          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-14">
+   312→            <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-full px-4 py-2 text-sm text-red-300 mb-6">
+   313→              <AlertTriangle className="w-3.5 h-3.5" />
+   314→              The HydraSpark Master Plan
+   315→            </div>
+   316→            <h2 className="text-4xl lg:text-5xl font-black tracking-tight mb-6">
+   317→              Why we are{" "}
+   318→              <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">100% free</span>
+   319→              {" "}(for now)
+   320→            </h2>
+   321→            <p className="text-white/60 text-lg leading-relaxed max-w-2xl mx-auto">
+   322→              Let's be honest: modern dating apps are broken. They're owned by massive monopolies that <span className="text-white font-semibold">profit off keeping you single</span>. They hide your likes, throttle your matches, and charge you $40 a month just to be seen.
+   323→            </p>
+   324→          </motion.div>
+   325→
+   326→          {/* Comparison */}
+   327→          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="grid md:grid-cols-2 gap-4 mb-16">
+   328→            <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
+   329→              <div className="text-red-400 font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+   330→                <Lock className="w-4 h-4" /> Other Apps
+   331→              </div>
+   332→              <ul className="space-y-3">
+   333→                {["$40/month to see who liked you", "Intentionally addictive — no matches = more subscriptions", "Your likes are hidden behind a paywall", "Corporate-owned. Your data is the product.", "Ghosted after paying $40"].map((t) => (
+   334→                  <li key={t} className="flex items-start gap-2 text-sm text-white/50">
+   335→                    <span className="text-red-400 mt-0.5">✗</span> {t}
+   336→                  </li>
+   337→                ))}
+   338→              </ul>
+   339→            </div>
+   340→            <div className="bg-purple-500/5 border border-purple-500/30 rounded-2xl p-6">
+   341→              <div className="text-purple-400 font-bold text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+   342→                <Unlock className="w-4 h-4" /> HydraSpark
+   343→              </div>
+   344→              <ul className="space-y-3">
+   345→                {["See everyone who likes you — free", "No hidden algorithm. No throttling.", "Built by one indie dev who wants you to find love", "City-by-city launch for real density, no ghost towns", "Early adopters get lifetime premium, forever"].map((t) => (
+   346→                  <li key={t} className="flex items-start gap-2 text-sm text-white/70">
+   347→                    <span className="text-emerald-400 mt-0.5">✓</span> {t}
+   348→                  </li>
+   349→                ))}
+   350→              </ul>
+   351→            </div>
+   352→          </motion.div>
+   353→
+   354→          {/* 3-phase roadmap */}
+   355→          <div className="space-y-6">
+   356→            {[
+   357→              {
+   358→                phase: "Phase 1",
+   359→                icon: Crown,
+   360→                color: "from-yellow-500 to-orange-500",
+   361→                border: "border-yellow-500/30",
+   362→                bg: "bg-yellow-500/5",
+   363→                badge: "Happening Now",
+   364→                badgeColor: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+   365→                title: 'The "Lifetime Founder" Drop',
+   366→                body: `The first 1,000 people to verify their profile in our launch city get "Hydra Elite" ($40/mo value) completely free — for life. No paywalls. See everyone who likes you. Never pay a subscription fee. Ever. Why? Because early adopters are the lifeblood of this app. You help us build the network, and we reward you with lifetime premium access.`,
+   367→                bullets: ["Unlimited swipes", "See everyone who likes you", "Advanced vibe filters", "Profile boost weekly", "Lifetime — never expires"],
+   368→              },
+   369→              {
+   370→                phase: "Phase 2",
+   371→                icon: MapPin,
+   372→                color: "from-cyan-500 to-blue-500",
+   373→                border: "border-cyan-500/20",
+   374→                bg: "bg-cyan-500/5",
+   375→                badge: "Coming Soon",
+   376→                badgeColor: "bg-cyan-500/15 text-cyan-300 border-cyan-500/20",
+   377→                title: "City-by-City Unlocks",
+   378→                body: "We are NOT launching globally. If you download an app and there's nobody in your area, it sucks. Instead, we use a Demand Waitlist. We will unlock the app one city (or college campus) at a time — whichever city gets the most people on the waitlist unlocks first.",
+   379→                bullets: ["Your city rises when friends join", "Invite 3 friends to jump the queue", "Guaranteed density before launch", "No ghost towns. Ever."],
+   380→              },
+   381→              {
+   382→                phase: "Phase 3",
+   383→                icon: Video,
+   384→                color: "from-pink-500 to-purple-500",
+   385→                border: "border-pink-500/20",
+   386→                bg: "bg-pink-500/5",
+   387→                badge: "The Endgame",
+   388→                badgeColor: "bg-pink-500/15 text-pink-300 border-pink-500/20",
+   389→                title: '"Spark Sessions" — The End of Endless Swiping',
+   390→                body: "Once a city is unlocked, we introduce our flagship feature: Live Video Speed Dating. Instead of swiping for hours every day, HydraSpark comes alive on Thursday nights at 8 PM. Log in, jump into secure 3-minute video Vibe Checks with locals, and instantly see if there's chemistry.",
+   391→                bullets: ["Live every Thursday at 8PM", "3-minute video Vibe Checks", "See chemistry before giving your number", "No catfishes. No dead-end convos."],
+   392→              },
+   393→            ].map((p, i) => (
+   394→              <motion.div
+   395→                key={p.phase}
+   396→                initial={{ opacity: 0, x: -20 }}
+   397→                whileInView={{ opacity: 1, x: 0 }}
+   398→                viewport={{ once: true }}
+   399→                transition={{ delay: i * 0.1 }}
+   400→                className={`${p.bg} border ${p.border} rounded-2xl p-7 flex gap-5`}
+   401→              >
+   402→                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${p.color} flex items-center justify-center flex-shrink-0 mt-1`}>
+   403→                  <p.icon className="w-5 h-5 text-white" />
+   404→                </div>
+   405→                <div className="flex-1 min-w-0">
+   406→                  <div className="flex flex-wrap items-center gap-2 mb-2">
+   407→                    <span className="text-white/30 text-xs font-bold uppercase tracking-widest">{p.phase}</span>
+   408→                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${p.badgeColor}`}>{p.badge}</span>
+   409→                  </div>
+   410→                  <h3 className="text-white font-black text-xl mb-2">{p.title}</h3>
+   411→                  <p className="text-white/55 text-sm leading-relaxed mb-4">{p.body}</p>
+   412→                  <div className="grid grid-cols-2 gap-1.5">
+   413→                    {p.bullets.map((b) => (
+   414→                      <div key={b} className="flex items-center gap-1.5 text-xs text-white/60">
+   415→                        <Check className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+   416→                        {b}
+   417→                      </div>
+   418→                    ))}
+   419→                  </div>
+   420→                </div>
+   421→              </motion.div>
+   422→            ))}
+   423→          </div>
+   424→        </div>
+   425→      </section>
+   426→
+   427→      {/* ── FOUNDER CLAIM CTA ── */}
+   428→      <section id="founder" className="py-24 relative">
+   429→        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+   430→          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-purple-600/15 blur-[140px]" />
+   431→        </div>
+   432→        <div className="max-w-2xl mx-auto px-6 relative">
+   433→          <motion.div
+   434→            initial={{ opacity: 0, y: 30 }}
+   435→            whileInView={{ opacity: 1, y: 0 }}
+   436→            viewport={{ once: true }}
+   437→            className="bg-gradient-to-br from-purple-900/60 to-cyan-900/40 border border-white/10 rounded-3xl p-10 text-center"
+   438→          >
+   439→            {/* Animated spots counter */}
+   440→            <div className="inline-flex items-center gap-2 bg-red-500/15 border border-red-500/30 rounded-full px-5 py-2 text-sm text-red-300 mb-6">
+   441→              <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse flex-shrink-0" />
+   442→              <span><AnimatedNumber value={count} /> / {TOTAL_SPOTS} Lifetime Spots Claimed</span>
+   443→            </div>
+   444→
+   445→            {/* Progress bar */}
+   446→            <div className="mb-8">
+   447→              <div className="w-full h-4 bg-white/5 rounded-full overflow-hidden border border-white/10 mb-2">
+   448→                <motion.div
+   449→                  initial={{ width: 0 }}
+   450→                  whileInView={{ width: `${pct}%` }}
+   451→                  viewport={{ once: true }}
+   452→                  transition={{ duration: 1.5, ease: "easeOut" as const }}
+   453→                  className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 relative"
+   454→                >
+   455→                  <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full" />
+   456→                </motion.div>
+   457→              </div>
+   458→              <div className="flex justify-between text-xs">
+   459→                <span className="text-white/30">0 spots</span>
+   460→                <span className="text-yellow-400 font-bold">{remaining} of {TOTAL_SPOTS} remaining</span>
+   461→                <span className="text-white/30">{TOTAL_SPOTS} spots</span>
+   462→              </div>
+   463→            </div>
+   464→
+   465→            <Crown className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
+   466→            <h2 className="text-3xl lg:text-4xl font-black mb-3">
+   467→              Claim Your Lifetime<br />
+   468→              <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">Founder Spot</span>
+   469→            </h2>
+   470→            <p className="text-white/50 text-sm mb-2 max-w-md mx-auto">
+   471→              Join now and get <strong className="text-white">Hydra Elite ($40/mo value) free forever</strong>. Once the 1,000 slots are gone, new users will pay. Founders never do.
+   472→            </p>
+   473→            <p className="text-white/30 text-xs mb-8">Your ZIP/city tells us where to launch next — it's crucial.</p>
+   474→
+   475→            {waitlistDone ? (
+   476→              <motion.div
+   477→                initial={{ scale: 0.8, opacity: 0 }}
+   478→                animate={{ scale: 1, opacity: 1 }}
+   479→                transition={{ type: "spring", stiffness: 260, damping: 20 }}
+   480→                className="flex flex-col items-center gap-3 py-4"
+   481→              >
+   482→                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+   483→                  <Check className="w-8 h-8 text-emerald-400" />
+   484→                </div>
+   485→                <p className="text-white font-black text-xl">You're in the queue!</p>
+   486→                <p className="text-white/50 text-sm max-w-xs text-center">
+   487→                  We'll email you when your city unlocks. Share with 3 friends to move your city to the top.
+   488→                </p>
+   489→                <Unauthenticated>
+   490→                  <div className="mt-2">
+   491→                    <p className="text-white/40 text-xs mb-2">Already have an account?</p>
+   492→                    <SignInButton className="text-sm font-bold bg-gradient-to-r from-purple-500 to-cyan-500 text-white px-6 py-2.5 rounded-xl hover:opacity-90 transition-all cursor-pointer border-0" />
+   493→                  </div>
+   494→                </Unauthenticated>
+   495→              </motion.div>
+   496→            ) : (
+   497→              <div className="flex flex-col items-center gap-4">
+   498→                <WaitlistForm onSuccess={() => { setWaitlistDone(true); toast.success("You're on the waitlist!", { description: "We'll notify you when your city unlocks." }); }} />
+   499→                <div className="flex items-center gap-1 text-white/25 text-xs">
+   500→                  <Mail className="w-3 h-3" /> No spam. Unsubscribe anytime.
+   501→                </div>
+   502→                <div className="w-full border-t border-white/5 pt-4">
+   503→                  <p className="text-white/30 text-xs mb-3">Already using HydraSpark?</p>
+   504→                  <Unauthenticated>
+   505→                    <SignInButton className="text-sm font-semibold bg-white/8 border border-white/15 text-white/70 px-6 py-2.5 rounded-xl hover:bg-white/12 transition-all cursor-pointer" />
+   506→                  </Unauthenticated>
+   507→                  <Authenticated>
+   508→                    <a href="/app" className="text-sm font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent cursor-pointer">
+   509→                      Enter the App →
+   510→                    </a>
+   511→                  </Authenticated>
+   512→                </div>
+   513→              </div>
+   514→            )}
+   515→          </motion.div>
+   516→
+   517→          {/* City leaderboard */}
+   518→          {cityLeaderboard && cityLeaderboard.length > 0 && (
+   519→            <motion.div
+   520→              initial={{ opacity: 0, y: 20 }}
+   521→              whileInView={{ opacity: 1, y: 0 }}
+   522→              viewport={{ once: true }}
+   523→              className="mt-6 bg-white/3 border border-white/8 rounded-2xl p-5"
+   524→            >
+   525→              <div className="flex items-center gap-2 mb-4">
+   526→                <Trophy className="w-4 h-4 text-yellow-400" />
+   527→                <span className="text-white/60 text-sm font-bold">Cities with most waitlist signups</span>
+   528→              </div>
+   529→              <div className="space-y-2">
+   530→                {cityLeaderboard.map((c, i) => (
+   531→                  <div key={c.city} className="flex items-center gap-3">
+   532→                    <span className={`text-xs font-black w-5 ${i === 0 ? "text-yellow-400" : "text-white/30"}`}>#{i + 1}</span>
+   533→                    <span className="text-white/70 text-sm capitalize flex-1">{c.city}</span>
+   534→                    <span className="text-purple-400 text-xs font-bold">{c.count} {c.count === 1 ? "person" : "people"}</span>
+   535→                  </div>
+   536→                ))}
+   537→              </div>
+   538→            </motion.div>
+   539→          )}
+   540→        </div>
+   541→      </section>
+   542→
+   543→      {/* ── FEATURES ── */}
+   544→      <section id="features" className="py-28 relative">
+   545→        <div className="absolute inset-0 pointer-events-none">
+   546→          <div className="absolute top-1/2 right-0 w-96 h-96 rounded-full bg-purple-600/10 blur-[140px]" />
+   547→        </div>
+   548→        <div className="max-w-7xl mx-auto px-6">
+   549→          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
+   550→            <p className="text-purple-400 text-sm font-semibold uppercase tracking-widest mb-4">Why HydraSpark</p>
+   551→            <h2 className="text-4xl lg:text-5xl font-black tracking-tight">
+   552→              Dating, but actually{" "}
+   553→              <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">fun</span>
+   554→            </h2>
+   555→          </motion.div>
+   556→          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+   557→            {FEATURES.map((f, i) => (
+   558→              <motion.div
+   559→                key={f.title}
+   560→                initial={{ opacity: 0, y: 30 }}
+   561→                whileInView={{ opacity: 1, y: 0 }}
+   562→                viewport={{ once: true }}
+   563→                transition={{ delay: i * 0.08 }}
+   564→                className="group bg-white/5 border border-white/8 rounded-2xl p-6 hover:bg-white/8 transition-all hover:border-white/15"
+   565→              >
+   566→                <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${f.gradient} flex items-center justify-center mb-4 text-white group-hover:scale-110 transition-transform`}>
+   567→                  <f.Icon className="w-6 h-6" />
+   568→                </div>
+   569→                <h3 className="text-lg font-bold mb-2">{f.title}</h3>
+   570→                <p className="text-white/50 text-sm leading-relaxed">{f.desc}</p>
+   571→              </motion.div>
+   572→            ))}
+   573→          </div>
+   574→        </div>
+   575→      </section>
+   576→
+   577→      {/* ── HOW IT WORKS ── */}
+   578→      <section className="py-28 bg-white/2">
+   579→        <div className="max-w-7xl mx-auto px-6">
+   580→          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
+   581→            <p className="text-cyan-400 text-sm font-semibold uppercase tracking-widest mb-4">How it works</p>
+   582→            <h2 className="text-4xl lg:text-5xl font-black tracking-tight">
+   583→              Three steps to your{" "}
+   584→              <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">match</span>
+   585→            </h2>
+   586→          </motion.div>
+   587→          <div className="grid md:grid-cols-3 gap-8">
+   588→            {[
+   589→              { num: "01", title: "Build your vibe", desc: "Answer 12 personality questions. Tell us your non-negotiables. Upload your best photos.", gradient: "from-purple-500 to-pink-500" },
+   590→              { num: "02", title: "Spark connections", desc: "Our algorithm serves you people with ≥65% vibe compatibility. Swipe, spotlight, connect.", gradient: "from-cyan-500 to-blue-500" },
+   591→              { num: "03", title: "Go on a date", desc: "Chat, break the ice, then hop on a live Spark Session — or meet IRL. We make it easy.", gradient: "from-pink-500 to-orange-500" },
+   592→            ].map((step, i) => (
+   593→              <motion.div
+   594→                key={step.num}
+   595→                initial={{ opacity: 0, y: 30 }}
+   596→                whileInView={{ opacity: 1, y: 0 }}
+   597→                viewport={{ once: true }}
+   598→                transition={{ delay: i * 0.15 }}
+   599→                className="text-center"
+   600→              >
+   601→                <div className={`text-6xl font-black bg-gradient-to-r ${step.gradient} bg-clip-text text-transparent mb-4`}>{step.num}</div>
+   602→                <h3 className="text-xl font-bold mb-3">{step.title}</h3>
+   603→                <p className="text-white/50 leading-relaxed">{step.desc}</p>
+   604→              </motion.div>
+   605→            ))}
+   606→          </div>
+   607→        </div>
+   608→      </section>
+   609→
+   610→      {/* ── STATS ── */}
+   611→      <section className="py-20">
+   612→        <div className="max-w-7xl mx-auto px-6">
+   613→          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+   614→            {STATS.map((s, i) => (
+   615→              <motion.div key={s.label} initial={{ opacity: 0, scale: 0.8 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="text-center">
+   616→                <div className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">{s.value}</div>
+   617→                <div className="text-white/40 text-sm mt-2">{s.label}</div>
+   618→              </motion.div>
+   619→            ))}
+   620→          </div>
+   621→        </div>
+   622→      </section>
+   623→
+   624→      {/* ── TESTIMONIALS ── */}
+   625→      <section className="py-28 bg-white/2">
+   626→        <div className="max-w-7xl mx-auto px-6">
+   627→          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-14">
+   628→            <h2 className="text-4xl font-black">Real people.{" "}<span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">Real sparks.</span></h2>
+   629→          </motion.div>
+   630→          <div className="grid md:grid-cols-3 gap-6">
+   631→            {[
+   632→              { quote: "I matched with my boyfriend within 3 days. The vibe questions actually work — we had so much to talk about instantly.", name: "Priya M.", city: "San Francisco", img: "https://images.unsplash.com/photo-1567516364473-233c4b6fcfbe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=100&q=80" },
+   633→              { quote: "The Spark Session video date was genius. We had a 3-minute video call first. No awkward first meeting at all.", name: "Jake T.", city: "London", img: "https://images.unsplash.com/photo-1450133064473-71024230f91b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=100&q=80" },
+   634→              { quote: "Finally a dating app that isn't just looks. The Two Truths One Lie icebreaker had us laughing for an hour.", name: "Yuki S.", city: "Tokyo", img: "https://images.unsplash.com/photo-1665560924350-29cbc22df634?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=100&q=80" },
+   635→            ].map((t, i) => (
+   636→              <motion.div key={t.name} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="bg-white/5 border border-white/8 rounded-2xl p-6">
+   637→                <div className="flex gap-1 mb-4">{[...Array(5)].map((_, j) => <Star key={j} className="w-4 h-4 text-yellow-400 fill-yellow-400" />)}</div>
+   638→                <p className="text-white/70 text-sm leading-relaxed mb-5">{'"'}{t.quote}{'"'}</p>
+   639→                <div className="flex items-center gap-3">
+   640→                  <img src={t.img} alt={t.name} className="w-10 h-10 rounded-full object-cover" />
+   641→                  <div>
+   642→                    <div className="font-semibold text-sm">{t.name}</div>
+   643→                    <div className="text-white/40 text-xs">{t.city}</div>
+   644→                  </div>
+   645→                </div>
+   646→              </motion.div>
+   647→            ))}
+   648→          </div>
+   649→        </div>
+   650→      </section>
+   651→
+   652→      {/* ── WHAT'S THE CATCH ── */}
+   653→      <section className="py-20">
+   654→        <div className="max-w-2xl mx-auto px-6 text-center">
+   655→          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-white/3 border border-white/8 rounded-2xl p-8">
+   656→            <h3 className="text-2xl font-black mb-3">What's the catch?</h3>
+   657→            <p className="text-white/55 leading-relaxed mb-6">
+   658→              There isn't one. Eventually, once the app has thousands of active users, we will charge new users a small weekly fee. But if you join now during Phase 1, you will be <strong className="text-white">grandfathered in with Lifetime Premium Access</strong>.
+   659→            </p>
+   660→            <p className="text-purple-300 font-semibold text-sm">The era of paying $40/month to get ghosted is over.</p>
+   661→            <div className="mt-6 flex flex-wrap justify-center gap-6 text-xs text-white/30">
+   662→              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Limited to 1,000 people</span>
+   663→              <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> No credit card required</span>
+   664→              <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> Grandfathered forever</span>
+   665→            </div>
+   666→          </motion.div>
+   667→        </div>
+   668→      </section>
+   669→
+   670→      {/* ── FINAL CTA ── */}
+   671→      <section className="py-24">
+   672→        <div className="max-w-4xl mx-auto px-6 text-center">
+   673→          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-gradient-to-r from-purple-600/20 to-cyan-600/20 border border-white/10 rounded-3xl p-14">
+   674→            <div className="flex justify-center mb-6">
+   675→              <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center">
+   676→                <Flame className="w-8 h-8 text-white" />
+   677→              </div>
+   678→            </div>
+   679→            <h2 className="text-4xl lg:text-5xl font-black mb-4 tracking-tight">
+   680→              Your spark is out there.
+   681→              <br />
+   682→              <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">Go find it.</span>
+   683→            </h2>
+   684→            <p className="text-white/50 mb-8 max-w-md mx-auto">Join {count.toLocaleString()} people on the waitlist. Get lifetime access. Never pay.</p>
+   685→            <a href="#founder" className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 to-cyan-500 text-white font-black px-10 py-4 rounded-2xl text-lg hover:opacity-90 transition-all hover:scale-105 cursor-pointer shadow-xl shadow-purple-500/25">
+   686→              <Crown className="w-5 h-5" />
+   687→              Claim My Spot ({remaining} left)
+   688→            </a>
+   689→            <div className="mt-6 flex items-center justify-center gap-6 text-white/30 text-xs flex-wrap">
+   690→              <span className="flex items-center gap-1"><Users className="w-3 h-3" /> No credit card</span>
+   691→              <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> Verified profiles only</span>
+   692→              <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> Grandfathered forever</span>
+   693→            </div>
+   694→          </motion.div>
+   695→        </div>
+   696→      </section>
+   697→
+   698→      {/* Footer */}
+   699→      <footer className="border-t border-white/5 py-10">
+   700→        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+   701→          <div className="flex items-center gap-2">
+   702→            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
+   703→              <Flame className="w-3 h-3 text-white" />
+   704→            </div>
+   705→            <span className="font-black text-sm bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">HYDRASPARK</span>
+   706→          </div>
+   707→          <p className="text-white/20 text-sm">© {new Date().getFullYear()} HydraSpark. Made with fire. Built by one indie dev.</p>
+   708→          <div className="flex gap-6 text-white/30 text-xs">
+   709→            <a href="#" className="hover:text-white/60 transition-colors">Privacy</a>
+   710→            <a href="#" className="hover:text-white/60 transition-colors">Terms</a>
+   711→            <a href="#" className="hover:text-white/60 transition-colors">Support</a>
+   712→          </div>
+   713→        </div>
+   714→      </footer>
+   715→    </div>
+   716→  );
+   717→}
