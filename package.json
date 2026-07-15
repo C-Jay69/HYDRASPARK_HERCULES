@@ -108,5 +108,12 @@
     "esbuild@0.27.0": true,
     "supabase@1.226.4": true,
     "@prisma/client@2.30.3": true
-  }
+  },
+  "trustedDependencies": [
+    "@ampproject/toolbox-optimizer",
+    "@parcel/watcher",
+    "@swc/core",
+    "es5-ext",
+    "unrs-resolver"
+  ]
 }
