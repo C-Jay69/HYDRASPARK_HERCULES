@@ -1,0 +1,49 @@
+# Supabase Configuration for HYDRASPARK_HERCULES
+
+[api]
+# Port to use for the API server
+port = 54321
+# Schemas to expose in the API
+schemas = ["public"]
+# Maximum number of rows to return in a single request
+max_rows = 1000
+
+[db]
+# Port to use for the database
+port = 54322
+# Shadow database URL (used for migrations)
+shadow_database_url = "postgresql://postgres:postgres@localhost:54322/postgres"
+
+[studio]
+# Port to use for Supabase Studio
+port = 54323
+
+[inbucket]
+# Port to use for Inbucket (email testing)
+port = 54324
+
+[storage]
+# File size limit in bytes (100MB)
+file_size_limit = 104857600
+
+[auth]
+# Enable/disable the auth system
+enabled = true
+# JWT expiry time in seconds (1 hour)
+jwt_expiry = 3600
+# Refresh token expiry time in seconds (7 days)
+refresh_token_expiry = 604800
+# Enable email confirmations
+enable_email_confirmations = true
+# Enable phone confirmations
+enable_phone_confirmations = false
+# Minimum password length
+min_password_length = 6
+
+[realtime]
+# Enable/disable realtime
+enabled = true
+# Maximum number of connections
+max_connections = 1000
+# Message buffer size
+message_buffer_size = 1000
