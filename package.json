@@ -79,10 +79,15 @@
     "vaul": "^1.1.2",
     "z-ai-web-dev-sdk": "^0.0.18",
     "zod": "^4.0.2",
-    "zustand": "^5.0.6"
+    "zustand": "^5.0.6",
+    "@supabase/supabase-js": "^2.38.0",
+    "@supabase/auth-helpers-nextjs": "^0.7.0",
+    "@supabase/auth-helpers-react": "^0.4.0"
   },
   "devDependencies": {
+    "@supabase/cli": "^1.88.0",
     "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "bun-types": "^1.3.4",
@@ -90,7 +95,7 @@
     "eslint-config-next": "^16.1.1",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.5",
-    "typescript": "^5"
+    "typescript": "^5.0.0"
   },
   "allowScripts": {
     "@parcel/watcher@2.5.6": true,
