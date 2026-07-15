@@ -85,7 +85,7 @@
     "@supabase/auth-helpers-react": "^0.4.0"
   },
   "devDependencies": {
-    "@supabase/cli": "^1.88.0",
+    "supabase": "^1.88.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.0.0",
     "@types/react": "^19",
