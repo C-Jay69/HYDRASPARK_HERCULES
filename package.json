@@ -100,6 +100,7 @@
     "@swc/core@1.15.43": true,
     "prisma@6.19.3": true,
     "sharp@0.34.5": true,
-    "unrs-resolver@1.12.2": true
+    "unrs-resolver@1.12.2": true,
+    "esbuild@0.27.0": true
   }
 }
