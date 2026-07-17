@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Sparkles, ArrowLeft, Crown } from 'lucide-react'
+import { ArrowLeft, Crown } from 'lucide-react'
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
@@ -40,18 +40,7 @@ export default function SignupPage() {
     }
 
     if (data.user) {
-      // Create profile row (triggers auto-founder assignment)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({ id: data.user.id, full_name: fullName })
-
-      if (profileError && profileError.code !== '23505') {
-        toast.error('Failed to create profile: ' + profileError.message)
-        setLoading(false)
-        return
-      }
-
-      toast.success('🎉 Welcome! Check your email to verify.')
+      toast.success("🎉 Welcome! You're now a founder!")
       router.push('/onboarding')
     }
   }
@@ -79,6 +68,7 @@ export default function SignupPage() {
               <Input
                 id="fullName"
                 type="text"
+                autoComplete="name"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
@@ -92,6 +82,7 @@ export default function SignupPage() {
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -105,6 +96,7 @@ export default function SignupPage() {
               <Input
                 id="password"
                 type="password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
