@@ -44,13 +44,21 @@ export default function OnboardingPage() {
   const [emergencyPhone, setEmergencyPhone] = useState('')
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    // Load interests from database
-    supabase
-      .from('interests')
-      .select('*')
-      .order('category')
-      .then(({ data }) => setAvailableInterests(data || []))
+    useEffect(() => {
+    const loadInterests = async () => {
+      const { data, error } = await supabase
+        .from('interests')
+        .select('*')
+        .order('category')
+
+      if (error) {
+        console.error('Failed to load interests:', error)
+        toast.error('Could not load interests')
+        return
+      }
+      setAvailableInterests(data || [])
+    }
+    loadInterests()
   }, [])
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
