@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { AlertCircleIcon } from "lucide-react";
-import { cn } from "@/lib/utils.ts";
+import { cn } from "@/lib/utils";
 
 function ErrorState({ className, ...props }: React.ComponentProps<"div">) {
   return (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -45,6 +45,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false)
 
     useEffect(() => {
+    if (!supabase) return
     const loadInterests = async () => {
       const { data, error } = await supabase
         .from('interests')
@@ -95,6 +96,10 @@ export default function OnboardingPage() {
   }
 
   const handleFinish = async () => {
+    if (!supabase) {
+      toast.error('Supabase not configured')
+      return
+    }
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -166,7 +171,8 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+    <main className="min-h-screen bg-black p-6">
+      <div className="fixed inset-0 pointer-events-none"><div className="absolute top-[-30%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/15 blur-[100px]" /><div className="absolute bottom-[-30%] right-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-500/10 blur-[100px]" /></div>
       <div className="max-w-2xl mx-auto">
         {/* Progress */}
         <div className="mb-8 pt-8">
@@ -177,7 +183,7 @@ export default function OnboardingPage() {
           <Progress value={(step / totalSteps) * 100} className="h-2" />
         </div>
 
-        <Card className="p-8 bg-white/5 backdrop-blur-xl border-white/10">
+        <Card className="relative p-8 bg-[#1a1a2e]/80 border border-purple-500/20 backdrop-blur-xl">
           {step === 1 && (
             <>
               <h2 className="text-3xl font-bold text-white mb-2">Let&apos;s start with basics</h2>
@@ -286,11 +292,11 @@ export default function OnboardingPage() {
                     onClick={() => toggleIntent(opt.value)}
                     className={`p-4 rounded-xl border-2 transition text-left ${
                       selectedIntents.includes(opt.value)
-                        ? 'border-yellow-400 bg-yellow-400/10'
+                        ? 'border-purple-400 bg-purple-400/10'
                         : 'border-white/10 bg-white/5 hover:border-white/30'
                     }`}
                   >
-                    <div className="text-yellow-400 mb-2">{opt.icon}</div>
+                    <div className="text-purple-400 mb-2">{opt.icon}</div>
                     <div className="text-white font-semibold">{opt.label}</div>
                     <div className="text-white/60 text-xs">{opt.desc}</div>
                   </button>
@@ -307,7 +313,7 @@ export default function OnboardingPage() {
                     onClick={() => toggleInterest(int.id)}
                     className={`cursor-pointer text-sm px-3 py-1.5 ${
                       selectedInterests.includes(int.id)
-                        ? 'bg-yellow-400 text-black hover:bg-yellow-300'
+                        ? 'bg-purple-500 text-white hover:bg-purple-400'
                         : 'bg-white/10 text-white hover:bg-white/20'
                     }`}
                   >
@@ -369,7 +375,7 @@ export default function OnboardingPage() {
               <Button
                 onClick={() => setStep(step + 1)}
                 disabled={!canGoNext()}
-                className="bg-gradient-to-r from-pink-500 to-purple-600 disabled:opacity-30"
+                className="bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white disabled:opacity-30"
               >
                 Next <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -377,7 +383,7 @@ export default function OnboardingPage() {
               <Button
                 onClick={handleFinish}
                 disabled={!canGoNext() || loading}
-                className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold"
+                className="bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold"
               >
                 {loading ? 'Setting up...' : '🚀 Complete Profile'}
               </Button>

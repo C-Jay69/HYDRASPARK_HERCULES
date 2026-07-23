@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,6 +23,11 @@ export default function SignupPage() {
     setLoading(true)
 
     const supabase = createClient()
+    if (!supabase) {
+      toast.error('Supabase not configured. Add your env vars to .env.local')
+      setLoading(false)
+      return
+    }
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -46,16 +51,17 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-6">
+    <main className="min-h-screen bg-black flex items-center justify-center p-6">
+      <div className="fixed inset-0 pointer-events-none"><div className="absolute top-[-30%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/15 blur-[100px]" /><div className="absolute bottom-[-30%] right-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-500/10 blur-[100px]" /></div>
       <div className="w-full max-w-md">
         <Link href="/" className="inline-flex items-center gap-2 text-white/60 hover:text-white mb-8">
           <ArrowLeft className="w-4 h-4" />
           Back home
         </Link>
 
-        <Card className="p-8 bg-white/5 backdrop-blur-xl border-white/10">
+        <Card className="relative p-8 bg-[#1a1a2e]/80 border border-purple-500/20 backdrop-blur-xl">
           <div className="flex items-center gap-2 mb-2">
-            <Crown className="w-6 h-6 text-yellow-400" />
+            <Crown className="w-6 h-6 text-purple-400" />
             <span className="text-xl font-bold text-white">Claim Founder Spot</span>
           </div>
           <p className="text-white/60 text-sm mb-6">
@@ -109,15 +115,15 @@ export default function SignupPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold hover:opacity-90"
+              className="w-full bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold"
             >
               {loading ? 'Creating account...' : '🚀 Claim My Spot'}
             </Button>
           </form>
 
-          <p className="text-white/60 text-sm text-center mt-6">
+          <p className="text-white/50 text-sm text-center mt-6">
             Already have an account?{' '}
-            <Link href="/login" className="text-yellow-400 hover:underline">
+            <Link href="/login" className="text-purple-300 hover:text-purple-200 hover:underline">
               Sign in
             </Link>
           </p>

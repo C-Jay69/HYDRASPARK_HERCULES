@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +27,10 @@ export default function DiscoverPage() {
   useEffect(() => {
     const supabase = createClient()
     const load = async () => {
+      if (!supabase) {
+        router.push('/login')
+        return
+      }
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
@@ -60,27 +64,27 @@ export default function DiscoverPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <main className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white">Loading...</div>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+    <main className="min-h-screen bg-black p-6">
       <div className="max-w-2xl mx-auto pt-8">
-        <Card className="p-8 bg-white/5 backdrop-blur-xl border-white/10 text-center">
+        <Card className="p-8 bg-[#1a1a2e]/80 border border-purple-500/20 backdrop-blur-xl text-center">
           {profile?.avatar_url && (
             <img
               src={profile.avatar_url}
               alt={profile.full_name}
-              className="w-32 h-32 rounded-full object-cover mx-auto mb-4 border-4 border-yellow-400"
+              className="w-32 h-32 rounded-full object-cover mx-auto mb-4 border-4 border-purple-500"
             />
           )}
           <div className="flex items-center justify-center gap-2 mb-2">
             <h1 className="text-3xl font-bold text-white">{profile?.full_name}</h1>
             {profile?.is_founder && (
-              <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black">
+              <Badge className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white">
                 <Crown className="w-3 h-3 mr-1" /> FOUNDER
               </Badge>
             )}
