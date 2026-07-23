@@ -6,11 +6,14 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   Shield,
-  Heart,
-  MapPin,
   Sparkles,
-  Users,
   AlertTriangle,
   Crown,
   ArrowRight,
@@ -20,11 +23,21 @@ import {
   Timer,
   Fingerprint,
   CalendarCheck,
+  ChevronDown,
 } from 'lucide-react'
+
+const LANGUAGES = [
+  { code: 'en', label: 'English', flag: '🇺🇸' },
+  { code: 'es', label: 'Español', flag: '🇪🇸' },
+  { code: 'zh', label: '中文', flag: '🇨🇳' },
+  { code: 'fr', label: 'Français', flag: '🇫🇷' },
+  { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
+]
 
 export default function LandingPage() {
   const [founderCount, setFounderCount] = useState<number>(0)
   const [loading, setLoading] = useState(isSupabaseConfigured)
+  const [selectedLang, setSelectedLang] = useState(LANGUAGES[0])
   const spotsLeft = 1000 - founderCount
   const progress = (founderCount / 1000) * 100
 
@@ -47,7 +60,7 @@ export default function LandingPage() {
           .select('*', { count: 'exact', head: true })
         setFounderCount(count || 0)
       } catch {
-        // Silently fail — show default state
+        // Table may not exist yet — show default state
       } finally {
         setLoading(false)
       }
@@ -71,7 +84,35 @@ export default function LandingPage() {
             HYDRASPARK
           </span>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
+          {/* Language Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-colors text-sm">
+                <Globe className="w-4 h-4" />
+                <span className="hidden sm:inline">{selectedLang.flag} {selectedLang.label}</span>
+                <ChevronDown className="w-3 h-3 opacity-50" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-[#1a1a2e] border border-white/10 min-w-[160px]">
+              {LANGUAGES.map((lang) => (
+                <DropdownMenuItem
+                  key={lang.code}
+                  onClick={() => setSelectedLang(lang)}
+                  className="text-white/70 hover:text-white hover:bg-white/10 cursor-pointer flex items-center justify-between"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>{lang.flag}</span>
+                    <span>{lang.label}</span>
+                  </span>
+                  {selectedLang.code === lang.code && (
+                    <Check className="w-3.5 h-3.5 text-purple-400" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Link href="/login">
             <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/5">
               Sign in
@@ -120,7 +161,7 @@ export default function LandingPage() {
 
         {/* Founder Counter Card */}
         <Card className="relative max-w-lg mx-auto p-8 bg-[#1a1a2e]/80 border border-purple-500/30 backdrop-blur-xl overflow-hidden">
-          {/* Glowing border effect for "Gold Spark" premium feel */}
+          {/* Glowing border effect for Gold Spark premium feel */}
           <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500/10 via-transparent to-cyan-500/10 pointer-events-none" />
 
           <div className="relative z-10">
@@ -290,12 +331,17 @@ export default function LandingPage() {
             Full multi-language support — English, Spanish, Chinese, French, and Hindi. Real connections transcend borders.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            {['English', 'Español', '中文', 'Français', 'हिन्दी'].map(lang => (
+            {LANGUAGES.map(lang => (
               <span
-                key={lang}
-                className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white/60 text-sm"
+                key={lang.code}
+                className={`px-4 py-2 rounded-full border text-sm cursor-pointer transition-all ${
+                  selectedLang.code === lang.code
+                    ? 'bg-purple-500/20 border-purple-500/40 text-white'
+                    : 'bg-white/5 border-white/10 text-white/60 hover:border-white/20'
+                }`}
+                onClick={() => setSelectedLang(lang)}
               >
-                {lang}
+                {lang.flag} {lang.label}
               </span>
             ))}
           </div>
